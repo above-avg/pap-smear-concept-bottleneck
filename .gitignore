@@ -29,3 +29,27 @@ Thumbs.db
 # external repos
 dino/
 LenovoLegionLinux/
+
+# python
+__pycache__/
+*.pyc
+
+# environments
+venv/
+.env/
+
+# datasets
+ssl_dataset/
+patches/
+
+# training artifacts
+embeddings/
+clusters/
+features/
+models/
+
+# notebooks
+.ipynb_checkpoints/
+
+# system
+.DS_Store
