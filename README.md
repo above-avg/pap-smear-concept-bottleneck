@@ -1,159 +1,140 @@
-# Unsupervised Concept Bottleneck for Pap Smear Cytology
+# Pap Smear Concept Bottleneck Pipeline
 
-## Overview
+![Pipeline](pipeline.png)
 
-This project explores an **unsupervised concept bottleneck framework for cytology image classification** using Pap smear microscopy images.
+This repository implements a **self-supervised concept bottleneck pipeline for Pap smear cytology analysis**.  
+Instead of training a direct CNN classifier, the system first learns **morphological representations**, discovers **cellular concepts via clustering**, and then performs **slide-level classification**.
 
-Instead of training a fully end-to-end classifier, the pipeline learns **interpretable morphological concepts** from cytology patches using **self-supervised learning (DINO)** and then aggregates these concepts for slide-level prediction.
-
-The goal is to create representations that are:
-
-* biologically meaningful
-* robust to dataset size
-* interpretable for medical analysis
+The goal is to obtain **interpretable representations of cytological morphology** while maintaining competitive classification performance.
 
 ---
 
-## Dataset
+# Example Morphological Clusters
 
-This project uses the **CERVIX93 Pap Smear Dataset**.
+Below are example patches from discovered clusters.
 
-Dataset characteristics:
+### Cluster Example 1
+![Cluster Example](cluster1.png)
 
-| Category     | Count |
-| ------------ | ----- |
-| Negative     | 16    |
-| LSIL         | 46    |
-| HSIL         | 31    |
-| Total slides | 93    |
+### Cluster Example 2
+![Cluster Example](cluster2.png)
 
-Each case contains:
-
-* microscopy image frames
-* Extended Depth of Field (EDF) images
-* manually annotated cell points
-
-Total annotated cells: **2705**
-
-| Class    | Annotated Cells |
-| -------- | --------------- |
-| Negative | 238             |
-| LSIL     | 1536            |
-| HSIL     | 931             |
+These clusters represent **morphological groupings of cytology patches** discovered through unsupervised learning.
 
 ---
 
-## Pipeline
+# Current Implementation
 
-The system follows a multi-stage pipeline:
-
-```
-Cytology Frames
-      │
-      ▼
-Patch Extraction (224×224)
-      │
-      ▼
-Self-Supervised Training (DINO ViT)
-      │
-      ▼
-Patch Embedding Extraction
-      │
-      ▼
-K-Means Concept Discovery
-      │
-      ▼
-Slide-Level Concept Representation
-      │
-      ▼
-Classifier (MLP)
-```
-
-This approach transforms raw image patches into **interpretable concept clusters**.
-
----
-
-## Methodology
+The following pipeline has been implemented:
 
 ### 1. Patch Extraction
 
-Each EDF frame is divided into patches:
+Whole slide frames from the **Cervix93 Pap smear dataset** are segmented into smaller image patches for representation learning.
 
-* Patch size: **224 × 224**
-* Overlapping stride for better coverage
-* Background filtering to remove empty regions
-
-Output: a patch dataset used for representation learning.
+```
+WSI Frames → Image Patches
+```
 
 ---
 
-### 2. Self-Supervised Representation Learning
+### 2. Self-Supervised Representation Learning (DINO)
 
-We use **DINO (Distillation with No Labels)** with a Vision Transformer backbone.
+A **Vision Transformer trained using DINO** learns morphological representations without labels.
 
-Key properties:
+```
+Patch Images → DINO Encoder → Feature Embeddings
+```
 
-* no manual annotations required
-* learns visual patterns through teacher-student training
-* captures fine morphological features
+Each patch is encoded as a:
 
-The model learns representations sensitive to:
-
-* nuclear size
-* chromatin texture
-* cytoplasm patterns
-* cell density
-* staining variations
+```
+384-dimensional feature vector
+```
 
 ---
 
 ### 3. Embedding Extraction
 
-After training, the encoder converts each patch into a **feature vector**.
+All patches are passed through the trained encoder.
+
+Output:
+
+```
+5488 patches
+↓
+384-dimensional embeddings
+```
+
+Saved as:
+
+```
+embeddings/patch_embeddings.npy
+```
+
+---
+
+### 4. Unsupervised Morphology Clustering
+
+Patch embeddings are grouped using **K-Means clustering**.
+
+```
+Embeddings → KMeans (K=30) → Morphology Clusters
+```
+
+Each patch receives a **cluster ID representing a morphological concept**.
+
+Saved outputs:
+
+```
+clusters/cluster_labels.npy
+clusters/cluster_centers.npy
+```
+
+---
+
+### 5. Cluster Visualization
+
+Representative patches are extracted from each cluster to inspect the **learned morphology patterns**.
+
+Example clusters may include:
+
+- mature squamous cells  
+- dense nuclear structures  
+- inflammatory cell patterns  
+- cytoplasmic morphology groups  
+
+---
+
+### 6. Slide-Level Concept Representation
+
+Patch clusters are aggregated into **slide-level feature vectors**.
+
+Each slide becomes a vector representing **cluster frequency distribution**.
 
 Example:
 
 ```
-patch → encoder → 384-dimensional embedding
+Slide → [Cluster1, Cluster2, ..., Cluster30]
 ```
 
-These embeddings describe morphological patterns in the data.
+Output:
+
+```
+93 slides
+30-dimensional concept vectors
+```
+
+Saved as:
+
+```
+features/slide_features.npy
+```
 
 ---
 
-### 4. Concept Discovery via Clustering
+### 7. Slide Classification
 
-K-means clustering groups similar embeddings:
-
-```
-Embeddings → K-means (K ≈ 30) → Concept clusters
-```
-
-Clusters often correspond to cytological structures such as:
-
-* mature squamous cells
-* koilocytosis
-* hyperchromatic nuclei
-* inflammatory cells
-* background debris
-
----
-
-### 5. Slide-Level Representation
-
-Each slide is represented by **cluster frequency vectors**:
-
-```
-Slide representation = histogram of concept clusters
-```
-
-This creates a **concept bottleneck layer** between image data and classification.
-
----
-
-### 6. Classification
-
-A shallow model (MLP or logistic regression) predicts the cytology grade:
+A lightweight classifier is trained on the concept vectors to predict:
 
 ```
 Negative
@@ -161,124 +142,100 @@ LSIL
 HSIL
 ```
 
-based on the discovered concept distribution.
+This forms an **interpretable Concept Bottleneck Model**.
 
 ---
 
-## Project Structure
+# Dataset
+
+Dataset used:
+
+**Cervix93 Pap Smear Dataset**
+
+Contains:
 
 ```
-pap_wsi_project/
+93 image stacks
+Negative: 16
+LSIL: 46
+HSIL: 31
+```
+
+Each stack contains frames with **annotated cervical cells**.
+
+Dataset must be downloaded separately and placed in:
+
+```
+ssl_dataset/all
+```
+
+---
+
+# Project Pipeline
+
+```
+Pap Smear WSI Frames
+        ↓
+Patch Extraction
+        ↓
+Self-Supervised Representation Learning (DINO)
+        ↓
+Patch Embeddings
+        ↓
+KMeans Morphology Clusters
+        ↓
+Cluster Visualization
+        ↓
+Slide-Level Concept Vectors
+        ↓
+Slide Classification
+```
+
+---
+
+# Repository Structure
+
+```
+pap-smear-concept-bottleneck
 │
 ├── src/
-│   ├── extract_patches.py
-│   ├── flatten_patches.py
+│   ├── extract_embeddings.py
+│   ├── cluster_embeddings.py
+│   ├── visualize_clusters.py
+│   ├── build_slide_features.py
+│   └── train_slide_classifier.py
 │
-├── notebooks/
+├── pipeline.png
+├── cluster1.png
+├── cluster2.png
 │
-├── dino/                 # external repo (not tracked)
-│
-├── data/                 # dataset (not tracked)
-│
-├── patches/              # generated patches (not tracked)
-│
-├── ssl_dataset/          # training patches (not tracked)
-│
-├── models/               # trained models (not tracked)
-│
-├── .gitignore
-└── README.md
+├── README.md
+└── requirements.txt
+```
+
+Large artifacts such as datasets, embeddings, and model checkpoints are **not stored in the repository**.
+
+---
+
+# Running the Pipeline
+
+After dataset setup:
+
+```bash
+python src/extract_embeddings.py
+python src/cluster_embeddings.py
+python src/visualize_clusters.py
+python src/build_slide_features.py
+python src/train_slide_classifier.py
 ```
 
 ---
 
-## Installation
+# Future Work
 
-Clone the repository:
+Planned extensions include:
 
-```
-git clone https://github.com/above-avg/pap-smear-concept-bottleneck.git
-cd pap-smear-concept-bottleneck
-```
-
-Create a Python environment:
-
-```
-python3 -m venv venv
-source venv/bin/activate
-```
-
-Install dependencies:
-
-```
-pip install torch torchvision timm scikit-learn opencv-python tqdm
-```
-
-Clone the DINO repository:
-
-```
-git clone https://github.com/facebookresearch/dino.git
-```
-
----
-
-## Running the Pipeline
-
-### Extract patches
-
-```
-python src/extract_patches.py
-```
-
-### Prepare dataset for SSL
-
-```
-python src/flatten_patches.py
-```
-
-### Train DINO
-
-```
-python dino/main_dino.py \
---arch vit_small \
---data_path ssl_dataset \
---epochs 200
-```
-
----
-
-## Research Motivation
-
-Traditional cytology classifiers often behave as **black-box CNN models**.
-
-This project explores whether:
-
-* morphological concepts can emerge **without labels**
-* clustering in representation space aligns with **pathological features**
-* concept distributions can explain disease grades
-
----
-
-## Future Work
-
-Possible extensions include:
-
-* concept attribution analysis
-* cluster visualization and expert validation
-* multiple instance learning (MIL)
-* causal concept intervention
-* counterfactual cluster manipulation
-
----
-
-## Acknowledgements
-
-* CERVIX93 dataset authors
-* Facebook Research for DINO
-* PyTorch ecosystem
-
----
-
-## License
-
-This project is intended for **research and educational purposes**.
+- **Cluster enrichment analysis** for HSIL vs LSIL  
+- **Concept importance analysis**  
+- **Temporal progression modeling across patient visits**  
+- Integration with **longitudinal clinical datasets**
