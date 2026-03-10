@@ -17,7 +17,7 @@ Below are example patches from discovered clusters.
 ![Cluster Example](cluster1.png)
 
 ### Cluster Example 2
-![Cluster Example](cluster2.png)
+![Cluster Example](cluster4.png)
 
 These clusters represent **morphological groupings of cytology patches** discovered through unsupervised learning.
 
