@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environments
+venv/
+
+# Datasets
+data/
+
+# Generated artifacts
+patches/
+ssl_dataset/
+embeddings/
+clusters/
+models/
+
+# Logs
+*.log
+runs/
+
+# System files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
